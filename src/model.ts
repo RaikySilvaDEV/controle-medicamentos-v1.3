@@ -1,1 +1,13 @@
-// temporary
+export type Role = 'patient' | 'companion';
+export type Tab = 'home' | 'meds' | 'history' | 'settings' | 'report';
+export type Med = { id:string; name:string; interval:number; start:string|null; active:boolean; form?:string; dose?:string; note?:string; photo?:string|null };
+export type Event = { id:string; medId:string; scheduled:string; confirmed:string; by:'Paciente'|'Acompanhante' };
+export type DB = { patientName:string; shareCode:string; meds:Med[]; events:Event[]; settings?:{sound:boolean;notifications:boolean} };
+export const KEY='controle-med-v1.3-db'; export const CHANNEL='cm-v13-realtime';
+const seed:DB={patientName:'',shareCode:'',meds:[],events:[],settings:{sound:true,notifications:false}};
+export function parseDate(value:unknown):Date|null{if(value instanceof Date)return Number.isFinite(value.getTime())?value:null;if(typeof value==='number'){const d=new Date(value);return Number.isFinite(d.getTime())?d:null}if(typeof value!=='string'||!value.trim())return null;const d=new Date(value);if(Number.isFinite(d.getTime()))return d;const m=/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(value.trim());if(m){const t=new Date();t.setHours(+m[1],+m[2],+(m[3]||0),0);return t}return null}
+export function load():DB{try{const raw=localStorage.getItem(KEY);if(!raw)return structuredClone(seed);const p=JSON.parse(raw);if(!p||!Array.isArray(p.meds))return structuredClone(seed);return {...seed,...p,patientName:String(p.patientName||''),shareCode:String(p.shareCode||''),meds:p.meds.map((m:any)=>({...m,name:String(m.name||'Medicamento'),interval:Number(m.interval)||1,active:m.active!==false,start:parseDate(m.start)?.toISOString()||null,photo:m.photo||null,note:m.note||''})),events:Array.isArray(p.events)?p.events:[],settings:{...seed.settings,...(p.settings||{})}}}catch{return structuredClone(seed)}}
+export const fmt=(t:string|Date|number)=>{const d=parseDate(t);return d?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—'};
+export const dateFmt=(t:string|Date|number)=>{const d=parseDate(t);return d?d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—'};
+export const duration=(ms:number)=>{const m=Math.max(0,Math.floor(Math.abs(ms)/60000));const h=Math.floor(m/60),r=m%60;return h?`${h}h ${String(r).padStart(2,'0')}min`:`${r}min`};
+export const dueFor=(m:Med,events:Event[])=>{if(!m.active)return null;const last=[...events].filter(e=>e.medId===m.id).map(e=>({...e,d:parseDate(e.confirmed)})).filter(e=>e.d).sort((a,b)=>b.d!.getTime()-a.d!.getTime())[0];const base=last?.d||parseDate(m.start);return base&&m.interval>0?new Date(base.getTime()+m.interval*60000):null};
