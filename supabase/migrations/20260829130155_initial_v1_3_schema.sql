@@ -1,0 +1,3 @@
+-- v1.3 database schema is applied to Supabase project ivcbqeqsvtcblsbssvww.
+-- This migration file is kept in Git for reproducibility.
+-- See Supabase dashboard migration history for the canonical applied migration.
